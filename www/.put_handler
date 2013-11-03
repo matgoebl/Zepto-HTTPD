@@ -1,0 +1,10 @@
+#!/bin/sh
+file=".$PATH_INFO"
+cat "$file" > data/last.txt
+
+(
+ echo -n "`date +%s`	"
+ echo -n "$file	" | sed -e 's|^\./data/||'
+ cat "$file" | tr '\n' '\t'
+ echo
+) >> data/log.txt

@@ -1,0 +1,10 @@
+#!/bin/sh
+# If you want to see the nicely formatted version, please install "markdown":
+#  sudo apt-get install markdown
+
+markdown ../README.md ||
+(
+ echo '<html><body><pre>'
+ cat ../README.md
+ echo '</pre></html></body>'
+)

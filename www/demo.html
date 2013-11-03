@@ -1,0 +1,74 @@
+<html>
+<head>
+<link rel="SHORTCUT ICON" href="/favicon.ico">
+<link rel="icon" href="favicon.ico" type="image/ico">
+<title>Zepto-HTTPD Demonstration Page</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width; initial-scale=1.0;" />
+</head>
+<body bgcolor=#FFFFFF link=#0000FF alink=#0000FF vlink=#0000FF>
+
+<h1><font face='arial,helvetica'><font color=red>Zepto-</font>HTTPD Demonstration Page</font></h1>
+
+<em>A demonstration of a minimalistic http server implementation.</em>
+<BR>See also the <a href='/cgi/readme.html'>README</a> file.
+
+<h2>Tests</h2>
+
+<li><img src='/icon.jpg'> JPEG Image.
+
+<li><a href='/cgi/env.txt'>CGI environment dump</a>.
+
+<li>Set text.txt file via CGI script:
+ <input id='msg' value='Hello_World.' size=20 onkeypress='if(event.keyCode==13) {javascript:msgsend();}'>
+ <button onclick='msgsend()'>set</button>
+
+ <script type="text/javascript">
+  function msgsend() {
+    var msg = document.getElementById("msg").value;
+    var req = new XMLHttpRequest();
+    req.open("GET", "/cgi/set.txt?text="+escape(msg)+"&time="+Date.now(), true);
+    req.send();
+  }
+ </script>
+
+<li>Post a file:
+ <input id='postmsg' value='Hello World!' size=20 onkeypress='if(event.keyCode==13) {javascript:msgpost();}'>
+ <button onclick='msgpost()'>set</button>
+
+ <script type="text/javascript">
+  function msgpost() {
+    var msg = document.getElementById("postmsg").value;
+    var req = new XMLHttpRequest();
+    req.open("POST", "/data/"+Date.now()+".txt", true);
+    req.send(msg);
+  }
+ </script>
+
+<li>CGI script generated <a href='/cgi/files.html'>list of data files</a>.
+
+
+<BR>
+<h3>Status</h3>
+<pre><span id="status">(unknown yet)</span></pre>
+
+<script type="text/javascript">
+ window.onload = function() {
+   update();
+ }
+
+ function update() {
+   var http = new XMLHttpRequest();
+   http.open("GET", "/cgi/status.txt", true);
+   http.onreadystatechange = function () {
+     if (http.readyState == 4) {
+       document.getElementById("status").firstChild.data = http.responseText;
+      }
+   }
+   http.send();
+   setTimeout(update,100);
+ }
+</script>   
+
+</body>
+</html>

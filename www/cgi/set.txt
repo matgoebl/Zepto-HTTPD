@@ -1,0 +1,5 @@
+#!/bin/sh
+file=data/text.txt
+echo "$CGIPARAM_TEXT" > $file
+echo "Wrote $file:"
+cat $file

@@ -1,0 +1,8 @@
+#!/bin/sh
+date +"[%Y-%m-%d %H:%M:%S]"
+echo
+echo Text:
+cat data/text.txt
+echo
+echo Last POST:
+cat data/last.txt

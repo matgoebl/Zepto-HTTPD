@@ -1,0 +1,19 @@
+#!/bin/sh
+#cd data >/dev/null || exit
+
+echo "<html><head><title>Files</title>"
+echo "<meta name=viewport content='width=device-width; initial-scale=1.0;'/></head>"
+echo "<body><h1>Files</h1><ul>"
+
+find . -type f | grep -v '/\.' | sed -e 's|^\.//*|/|' | sort | \
+while read file
+do
+  echo "<li><a href='$file'>$file</a>"
+  if echo "$file" | grep -q '^/data/'; then
+    datafile="` echo \"$file\" | sed -e 's|/data/||' `"
+    echo "&nbsp;(<a href='/cgi/download.nph?file=$datafile'>download</a>"
+    echo "/ <a href='$file??method=delete'>delete</a>)"
+  fi
+done
+
+echo "</ul></body></html>"

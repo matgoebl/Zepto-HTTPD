@@ -1,0 +1,22 @@
+#!/bin/sh
+
+# Simple NPH (No Parsed Headers) script:
+# This script allows the download from files within the /data/ directory.
+# It calculates the missing Content-Length header by itself.
+
+file="$CGIPARAM_FILE"
+echo "$file" | grep '/' >/dev/null && exit
+cd data >/dev/null || exit
+
+# Calculate file size:
+len=`wc -c < $file`
+
+# Our own headers:
+/bin/echo -e 'HTTP/1.0 200 OK\r'
+/bin/echo -e 'Server: zeptohttpd/0.5\r'
+/bin/echo -e 'Content-Type: application/octet-stream\r'
+/bin/echo -e 'Content-Length: '"$len"'\r'
+/bin/echo -e '\r'
+
+# Our body:
+cat $file
