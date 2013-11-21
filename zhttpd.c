@@ -1,4 +1,4 @@
-#include <stdio.h>      //  Zepto-HTTPD v0.7 - (c)2010-2013 Matthias Goebl
+#include <stdio.h>      //  Zepto-HTTPD v0.8 - (c)2010-2013 Matthias Goebl
 #include <stdlib.h>     //  Usage: zhttpd [ PORT [ HTMLROOT [ INDEXPAGE ] ] ]
 #include <string.h>     //  Default: zhttpd 8888 . /index.html
 #include <errno.h>      //  Zepto- (symbol z) is a prefix in the metric system denoting *10^-21.
@@ -63,7 +63,7 @@ void handle_client (FILE *fd, char *remote_addr) {
  }}}}
  DBG ("Reply: Status %i with Content:\n%s", status, response);
  if (!strstr (request, ".nph") && fd != NULL)
-  fprintf (fd, "HTTP/1.0 %i %s\r\nServer: zeptohttpd/0.7\r\nContent-Type: %s\r\n\r\n%s",
+  fprintf (fd, "HTTP/1.0 %i %s\r\nServer: zeptohttpd/0.8\r\nContent-Type: %s\r\n\r\n%s",
    status, status == 200 ? "OK" : "Error", strstr (request, ".htm") ? "text/html" :
                 strstr (request, ".txt") ? "text/plain" : strstr (request, ".jpg") ? "image/jpeg" :
                 "application/octet-stream", response);
@@ -86,7 +86,7 @@ int main (int argc, char **argv) {
  if(bind(server_sock,(struct sockaddr*)&server_addr,sizeof(server_addr))<0) DIE(strerror(errno));
  listen (server_sock, 10);
  while (1) {
-   DBG ("\n\n*** Zepto-HTTPD v0.7 - (c)2010-13 Matthias Goebl ***\nListening at TCP Port %i.",port);
+   DBG ("\n\n*** Zepto-HTTPD v0.8 - (c)2010-13 Matthias Goebl ***\nListening at TCP Port %i.",port);
    addr_len = sizeof (client_addr);
    client_sock = accept (server_sock, (struct sockaddr *) &client_addr, &addr_len);
    if (client_sock == -1) continue;
