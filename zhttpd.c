@@ -35,9 +35,9 @@ void handle_client (FILE *fd, char *remote_addr) {
    q=&envbuf[9]; // yes, this is too compact and therefore ugly and hard to read
    while(*p!='\0'&&*p!='='&&*p!='&')
      {*q=toupper(*p);*q=(*q>='A'&&*q<='Z')||(*q>='0'&&*q<='9')?*q:'_';p++;q++;}
-   if(*p=='\0') break;
-   *q++='\0'; p++; r=q; while ( *p!='\0' && *p!='&' ) {*q++=*p++;}
-   p++; *q++='\0'; setenv(envbuf,r,1);
+   if(*p=='\0') {break;} *q++='\0'; p++; r=q;
+   while (*p!='\0' && *p!='&') { if(*p=='%') {char h[3]={p[1],p[2],0};p+=3;*q++=strtol(h,NULL,16);}
+    else if(*p=='+') {*q++=' ';p++;} else *q++=*p++;} p++; *q++='\0'; setenv(envbuf,r,1);
   }
   if(getenv("ZAUTH"))
    if(!getenv("ZHTTP_AUTHORIZATION")||strcmp(getenv("ZAUTH"),getenv("ZHTTP_AUTHORIZATION"))!=0)

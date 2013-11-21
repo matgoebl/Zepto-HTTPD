@@ -18,7 +18,7 @@ Features
       Examples: `/cgi/env.txt /cgi/index.html /cgi/download.nph`
     - It sets `REMOTE_ADDR`, `REQUEST_URI`, `PATH_INFO` and `QUERY_STRING`.
     - It decodes all query parameters (`QUERY_STRING`) to environment variables named `CGIPARAM_*`.  
-      Example: `?a=1&B=2` results in `CGIPARAM_A=1` and  `CGIPARAM_B=2`
+      Example: `?a=1&B=2` results in `CGIPARAM_A=1` and  `CGIPARAM_B=2`. Also decodes %XX and +.
     - It writes all header fileds to `ZHTTP_*` environment variables, e.g. `ZHTTP_USER_AGENT`.  
       See `/cgi/env.txt` to get a list.
     - `NPH` (No Parsed Headers) scripts are supported with the extension `.nhp`:
