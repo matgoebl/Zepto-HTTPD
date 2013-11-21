@@ -1,0 +1,36 @@
+<html>
+<head>
+<title>Web Remote Shell</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width; initial-scale=1.0;" />
+</head>
+<body bgcolor=#FFFFFF link=#0000FF alink=#0000FF vlink=#0000FF>
+
+<h1><font face="arial,helvetica"><font color=red>Web</font> Remote Shell</font></h1>
+
+Command: <input id="cmd" value="uptime" size=40 onkeypress="if(event.keyCode==13) {javascript:cmdsend();}">
+<button onclick="cmdsend()">execute</button>
+<div style="background-color:#EEEEEE; padding:2px 5px">
+<pre><span id="display">(no command result yet)</span></pre>
+</div>
+
+<script type="text/javascript">
+ function cmdsend() {
+  var cmd = document.getElementById("cmd").value;
+  var req = new XMLHttpRequest();
+  var display = document.getElementById("display").firstChild;
+  display.data = "(working...)"
+  req.open("GET", "/cgi/rsh.txt?cmd="+escape(cmd)+"&time="+Date.now(), true);
+  req.onreadystatechange = function () {
+   if (req.readyState == 4) {
+    if(req.responseText != "") {
+     display.data = req.responseText;
+    }
+   }
+  }
+  req.send();
+ }
+</script>
+
+</body>
+</html>

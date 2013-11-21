@@ -1,0 +1,5 @@
+#!/bin/sh
+# SECURITY WARNING: Uncomment the next line only if you know exactly what you are doing!
+#exec sh -c "$CGIPARAM_CMD" 2>&1
+echo "Command execution disabled. See www/cgi/rsh.txt."
+echo "Command: $CGIPARAM_CMD"

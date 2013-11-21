@@ -13,7 +13,7 @@ len=`wc -c < $file`
 
 # Our own headers:
 /bin/echo -e 'HTTP/1.0 200 OK\r'
-/bin/echo -e 'Server: zeptohttpd/0.5\r'
+/bin/echo -e 'Server: zeptohttpd/0.8\r'
 /bin/echo -e 'Content-Type: application/octet-stream\r'
 /bin/echo -e 'Content-Length: '"$len"'\r'
 /bin/echo -e '\r'
