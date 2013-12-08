@@ -9,14 +9,14 @@
 #include <sys/types.h>  //  Version 0.5 also implements PUT&DELETE(??d..), but lacks the AJAX demo.
 #include <sys/wait.h>   //  It serves text and html files from the file system. 
 #include <unistd.h>     //  It supports simple cgi-scripts (also nph).
-#include <ctype.h>      //  Tricks: Double-Fork, Env-as-AssocArray, HTTP/1.0, 
+#include <ctype.h>      //  Tricks: Only HTTP/1.0, Env-as-AssocArray,
 #include <arpa/inet.h>  //  Features: CGI+params, put/delete, auth, hmtl/txt/jpg/bin, log,
 #define DIE(msg...) do {fprintf(stderr,msg);fprintf(stderr," - terminated!\n");exit(1);} while (0)
 #define DBG(msg...) do {if(getenv("DEBUG")){fprintf(stderr,msg);fprintf(stderr,"\n");}} while (0)
 char *indexpage="/index.html";
-void handle_client (FILE *fd, char *remote_addr) {
- char method[17], request[8193], *query="\0", envbuf[8192],response[8192],*p,*q,*r;FILE *pgfd=NULL;
- int ret, size, status = 503; sprintf(response,"HTTP Error\r\n");
+void handle_client (FILE *fd, int fh, char *remote_addr) {
+ char method[17],request[8193],*query="\0",envbuf[8192],response[8192],*p,*q,*r,fb[99];
+ FILE *pgfd=NULL; int ret, size, status = 503; sprintf(response,"HTTP Error\r\n");
  ret = fscanf (fd, "%16[^ \t]%*[ \t] %8192[^ \t]%*[^\n]\n", method, request);
  if (ret == 2) {
   DBG ("Request from %s: '%s' '%s'.", remote_addr, method, request);
@@ -41,7 +41,8 @@ void handle_client (FILE *fd, char *remote_addr) {
   }
   if(getenv("ZAUTH"))
    if(!getenv("ZHTTP_AUTHORIZATION")||strcmp(getenv("ZAUTH"),getenv("ZHTTP_AUTHORIZATION"))!=0)
-    {fprintf(fd,"HTTP/1.0 401 No Auth\r\nWWW-Authenticate: Basic realm=\"auth\"\r\n\r\n");return;}
+    {sprintf(fb,"HTTP/1.0 401 No Auth\r\nWWW-Authenticate: Basic realm=\"auth\"\r\n\r\n");
+     write(fh,fb,strlen(fb));return;}
   if (strcmp (request, "/") == 0) strcpy (request, indexpage);
   if (strcasecmp (query, "?METHOD=DELETE") == 0) {strcpy(method,"DELETE");}
   if (strstr (request, "..")==NULL && request[0]=='/' && request[1]!='/' && request[1]!='.' ) {
@@ -63,13 +64,13 @@ void handle_client (FILE *fd, char *remote_addr) {
  }}}}
  DBG ("Reply: Status %i with Content:\n%s", status, response);
  if (!strstr (request, ".nph") && fd != NULL)
-  fprintf (fd, "HTTP/1.0 %i %s\r\nServer: zeptohttpd/0.8\r\nContent-Type: %s\r\n\r\n%s",
+  {sprintf (fb, "HTTP/1.0 %i %s\r\nServer: zeptohttpd/0.8\r\nContent-Type: %s\r\n\r\n%s",
    status, status == 200 ? "OK" : "Error", strstr (request, ".htm") ? "text/html" :
                 strstr (request, ".txt") ? "text/plain" : strstr (request, ".jpg") ? "image/jpeg" :
-                "application/octet-stream", response);
+                "application/octet-stream", response); write(fh,fb,strlen(fb));}
  if (pgfd != NULL) { // we have an open pipe to a cgi executable
    while ((ret = fread (response, 1, sizeof (response), pgfd)) > 0)
-     fwrite (response, 1, ret, fd);
+     write (fh, response, ret);
    strncmp (request,"/cgi/",5) == 0 ? pclose (pgfd) : fclose (pgfd);
  }
  printf ("%s %03i %s %s %s\n", remote_addr, status, method, request, query);
@@ -84,7 +85,7 @@ int main (int argc, char **argv) {
  server_addr.sin_port = htons (port);
  if(setsockopt(server_sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes))<0) DIE(strerror(errno));
  if(bind(server_sock,(struct sockaddr*)&server_addr,sizeof(server_addr))<0) DIE(strerror(errno));
- listen (server_sock, 10);
+ listen (server_sock, 10); signal(SIGCHLD, SIG_IGN);
  while (1) {
    DBG ("\n\n*** Zepto-HTTPD v0.8 - (c)2010-13 Matthias Goebl ***\nListening at TCP Port %i.",port);
    addr_len = sizeof (client_addr);
@@ -93,7 +94,6 @@ int main (int argc, char **argv) {
    getnameinfo ((struct sockaddr *) &client_addr, sizeof (client_addr), client_info,
     sizeof (client_info), NULL, 0, NI_NUMERICHOST);
    client_fd = fdopen (client_sock, "r+"); DBG ("Connect from %s.", client_info);
-   if (!(pid=fork())) { if (!fork ()) handle_client (client_fd, client_info); exit (0); }
-   waitpid(pid, NULL, 0); // after a double-fork init handles our childs
+   if (!fork()) { handle_client (client_fd, client_sock, client_info); exit (0); }
    fclose (client_fd); DBG ("Disconnected from %s.", client_info);
 }}

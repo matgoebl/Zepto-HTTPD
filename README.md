@@ -39,7 +39,6 @@ Tricks and limitations
 - It only supports only `HTTP/1.0`, because  `HTTP/1.0` can be kept very simple.
   `HTTP/1.1` adds many mandatory features and hence complexity.
 - It uses the environment as an associative array for header variables and query parameters.
-- It does double-forking for every request to let init handle the child processes.
 - It provides a very limited set of known file types.
 - It has limited error handling: It responds with status `404`, `401` or `503` and returns the message `HTTP Error` in all cases.
 
