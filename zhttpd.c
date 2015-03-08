@@ -11,6 +11,7 @@
 #include <unistd.h>     //  It supports simple cgi-scripts (also nph).
 #include <ctype.h>      //  Tricks: Only HTTP/1.0, Env-as-AssocArray,
 #include <arpa/inet.h>  //  Features: CGI+params, put/delete, auth, hmtl/txt/jpg/bin, log,
+#include <dirent.h>     //
 #define DIE(msg...) do {fprintf(stderr,msg);fprintf(stderr," - terminated!\n");exit(1);} while (0)
 #define DBG(msg...) do {if(getenv("DEBUG")){fprintf(stderr,msg);fprintf(stderr,"\n");}} while (0)
 char *indexpage="/index.html";
@@ -28,8 +29,7 @@ void handle_client (FILE *fd, int fh, char *remote_addr) {
    p=strchr(envbuf,'\r'); if(p) *p='\0'; if (strlen (envbuf) <= 6) break;
    p=envbuf; while(*p!='\0' && *p!=':') {*p=toupper(*p);*p=*p>='A' && *p<='Z'?*p:'_';p++;}
    p=strchr(envbuf,':'); if(p) {*p='\0'; if(*(++p)==' ') p++; setenv(envbuf,p,1); }
-   DBG ("Header: %s=%s.", envbuf,p);
-  }
+   DBG ("Header: %s=%s.", envbuf,p); }
   strcpy(envbuf,"CGIPARAM_"); p=query; // put CGI args into environment
   while ( *p!='\0' ) {
    q=&envbuf[9]; // yes, this is too compact and therefore ugly and hard to read
@@ -37,8 +37,7 @@ void handle_client (FILE *fd, int fh, char *remote_addr) {
      {*q=toupper(*p);*q=(*q>='A'&&*q<='Z')||(*q>='0'&&*q<='9')?*q:'_';p++;q++;}
    if(*p=='\0') {break;} *q++='\0'; p++; r=q;
    while (*p!='\0' && *p!='&') { if(*p=='%') {char h[3]={p[1],p[2],0};p+=3;*q++=strtol(h,NULL,16);}
-    else if(*p=='+') {*q++=' ';p++;} else *q++=*p++;} p++; *q++='\0'; setenv(envbuf,r,1);
-  }
+    else if(*p=='+') {*q++=' ';p++;} else *q++=*p++;} p++; *q++='\0'; setenv(envbuf,r,1); }
   if(getenv("ZAUTH"))
    if(!getenv("ZHTTP_AUTHORIZATION")||strcmp(getenv("ZAUTH"),getenv("ZHTTP_AUTHORIZATION"))!=0)
     {sprintf(fb,"HTTP/1.0 401 No Auth\r\nWWW-Authenticate: Basic realm=\"auth\"\r\n\r\n");
@@ -47,6 +46,10 @@ void handle_client (FILE *fd, int fh, char *remote_addr) {
   if (strcasecmp (query, "?METHOD=DELETE") == 0) {strcpy(method,"DELETE");}
   if (strstr (request, "..")==NULL && request[0]=='/' && request[1]!='/' && request[1]!='.' ) {
    if (strcasecmp (method, "GET") == 0) {
+    if(request[strlen(request)-1]=='/'){DIR *dp;struct dirent *ep;dp=opendir (&request[1]);
+     sprintf(fb,"HTTP/1.0 200 Ok.\r\nContent-Type: test/plain\r\n\r\n");write(fh,fb,strlen(fb));
+     if(dp!=NULL){while((ep=readdir(dp))!=NULL) {write(fh,ep->d_name,strlen(ep->d_name));
+      if(ep->d_type==DT_DIR)write(fh,"/",1);write(fh,"\n",1);}} closedir(dp);return;}
     pgfd = strncmp (request,"/cgi/",5) == 0 ? popen (&request[1], "r") : fopen (&request[1], "r");
     status = 404; if (pgfd != NULL) { response[0] = '\0'; status = 200; }
    } else if (strncmp (request, "/data/", 6) == 0 ) {
@@ -71,14 +74,12 @@ void handle_client (FILE *fd, int fh, char *remote_addr) {
  if (pgfd != NULL) { // we have an open pipe to a cgi executable
    while ((ret = fread (response, 1, sizeof (response), pgfd)) > 0)
      write (fh, response, ret);
-   strncmp (request,"/cgi/",5) == 0 ? pclose (pgfd) : fclose (pgfd);
- }
- printf ("%s %03i %s %s %s\n", remote_addr, status, method, request, query);
-}
+   strncmp (request,"/cgi/",5) == 0 ? pclose (pgfd) : fclose (pgfd); }
+ printf ("%s %03i %s %s %s\n", remote_addr, status, method, request, query); }
 int main (int argc, char **argv) {
  struct sockaddr_in server_addr, client_addr; socklen_t addr_len;
  char client_info[NI_MAXHOST]; FILE *client_fd;
- int server_sock, client_sock, pid, yes = 1, port = argc >= 2 ? atoi (argv[1]) : 8888;
+ int server_sock, client_sock, yes = 1, port = argc >= 2 ? atoi (argv[1]) : 8888;
  if (argc >= 3) if (chdir (argv[2]) < 0) DIE (strerror (errno)); if (argc >= 4) indexpage=argv[3];
  server_sock = socket (AF_INET, SOCK_STREAM, 0); if (server_sock < 0) DIE (strerror (errno));
  server_addr.sin_family = AF_INET; server_addr.sin_addr.s_addr = htonl (INADDR_ANY);

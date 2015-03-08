@@ -7,6 +7,8 @@ all:	$(TARGETS)
 
 zhttpd: zhttpd.o
 	$(CC) $(LDFLAGS) -o $@ $^
+	wc zhttpd.c
+	wc -c zhttpd
 
 clean:
 	-rm -f *.o $(TARGETS)
@@ -14,6 +16,7 @@ clean:
 
 demo:	zhttpd
 	-killall zhttpd 2>/dev/null
+	@echo 'Please open http://127.0.0.1:8888 in your favorite browser.'
 	./zhttpd 8888 www/ /demo.html
 
 test:	zhttpd
@@ -27,6 +30,7 @@ test:	zhttpd
 	curl -s http://127.0.0.1:8888/cgi/env.txt | grep REQUEST_URI
 	curl -s http://127.0.0.1:8888/cgi/set.txt'?'text=123
 	curl -s http://127.0.0.1:8888/data/text.txt | grep 123
+	curl -s http://127.0.0.1:8888/data/ | grep text.txt
 	curl -s http://127.0.0.1:8888/data/text.txt -X DELETE | grep Ok
 	-killall zhttpd 2>/dev/null
 	-rm -f text.txt
@@ -38,3 +42,4 @@ authtest: zhttpd
 	curl -s -v http://127.0.0.1:8888/cgi/env.txt 2>&1 | grep ' 401 '
 	curl -s -u 'user:pass' http://127.0.0.1:8888/cgi/env.txt | grep AUTHORIZATION
 	-killall zhttpd 2>/dev/null
+
