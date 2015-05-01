@@ -1,0 +1,155 @@
+<html>
+<head>
+<title>Zepto Web File Manager</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+</head>
+<body bgcolor=#FFFFFF link=#0000FF alink=#0000FF vlink=#0000FF>
+
+<h1><font face="arial,helvetica"><font color=red>Zepto</font> Web File Manager</font></h1>
+
+Path: <input id="path" value="/data/" size=40 onkeypress="if(event.keyCode==13) {chdir();}">
+<button onclick="chdir()">ChDir</button>
+<input type="button" value="RmDir" onclick="rmdir()">
+<BR>
+<div style="background-color:#EEEEEE; padding:2px 5px">
+<pre><div id="dirlist">(no data yet)</div></pre>
+</div>
+<BR>
+File: <input id="file" value="uptime" size=40 onkeypress="if(event.keyCode==13) {cmdexec();}">
+<input type="button" value="Edit" onclick="editfile()">
+<input type="button" value="Save" onclick="savefile()">
+<input type="button" value="Execute" onclick="cmdexec()">
+<input type="button" value="Delete" onclick="deletefile()">
+<input type="button" value="Rename" onclick="renamefile()">
+<input type="button" value="MkDir" onclick="mkdir()">
+<textarea id="display" style="width: 100%; height:30em; background-color:#EEEEEE; padding:2px 5px">
+(no data yet)
+</textarea>
+
+
+
+<script type="text/javascript">
+
+ function chdir(path) {
+  if(!path) { path = document.getElementById("path").value; }
+  var dirlist = document.getElementById("dirlist");
+  var req = new XMLHttpRequest();
+  dirlist.firstChild.data = "(working...)"
+  req.open("GET", path+"?_="+Date.now(), true);
+  req.onreadystatechange = function () {
+   if (req.readyState == 4) {
+    if(req.responseText != "") {
+     document.getElementById("path").value=path;
+     var out = "";
+     var lines = req.responseText.split('\n');
+     for(var n = 0; n < lines.length; n++) {
+      line = lines[n];
+      var newpath=path+"/"+line;
+      newpath=newpath.replace("//","/");
+      if(line.slice(-1)==="/") {
+       if(line==="../") {
+        newpath=path.replace(/\/[^/]*\/$/,"/")
+       }
+       out += "<a href='#' onclick=\"chdir('"+newpath+"')\">"+line+"</a><BR>";
+      } else {
+       out += "<a href='#' onclick=\"setfile('"+newpath+"')\">"+line+"</a><BR>";
+      }
+     }
+     if(out==="") { out="-"; }
+     dirlist.innerHTML=out;
+    }
+   }
+  }
+  req.send();
+  return false;
+ }
+
+ function setfile(file) {
+  document.getElementById("file").value=file;
+  return false;
+ }
+
+ function deletefile() {
+  var file = document.getElementById("file").value;
+  if( confirm('Really DELETE '+file+' ?')) {
+   cmdexec("rm ."+file+" && echo 'OK, deleted "+file+"'");
+  }
+  return false;
+ }
+
+ function renamefile() {
+  var file = document.getElementById("file").value;
+  var newfile=prompt('New File Name:',file);
+  if( newfile) {
+   cmdexec("mv ."+file+" ."+newfile+" && echo 'OK, renamed as "+newfile+"'");
+  }
+  return false;
+ }
+
+ function mkdir() {
+  var path = document.getElementById("path").value;
+  var newfile=prompt('New Directory Name:',path+"newdir");
+  if( newfile ) {
+   cmdexec("mkdir ."+newfile+" && echo 'OK, created "+newfile+"'");
+  }
+  return false;
+ }
+
+ function rmdir() {
+  var file = document.getElementById("path").value;
+  if( confirm('Really DELETE '+file+' ?')) {
+   cmdexec("rmdir ."+file+" && echo 'OK, deleted "+file+"'");
+  }
+  return false;
+ }
+
+ var display = document.getElementById("display");
+ function cmdexec(cmd) {
+  if (!cmd) cmd = document.getElementById("file").value;
+  if(cmd.slice(0,1)==="/") cmd="."+cmd;
+  var req = new XMLHttpRequest();
+  display.value = "(working...)"
+  req.open("GET", "/cgi/rsh.txt?cmd="+encodeURIComponent(cmd)+"&_="+Date.now(), true);
+  req.onreadystatechange = function () {
+   if (req.readyState == 4) {
+    display.value = req.responseText;
+    chdir();
+   }
+  }
+  req.send();
+ }
+
+ function editfile() {
+  var file = document.getElementById("file").value;
+  var req = new XMLHttpRequest();
+  display.value = "(loading...)"
+  req.open("GET", file+"?_="+Date.now(), true);
+  req.onreadystatechange = function () {
+   if (req.readyState == 4) {
+    display.value = req.responseText;
+   }
+  }
+  req.send();
+ }
+
+ function savefile() {
+  var file = document.getElementById("file").value;
+  var req = new XMLHttpRequest();
+  req.open("POST", file, true);
+  req.onreadystatechange = function () {
+   if (req.readyState == 4) {
+    alert("Saving Result: " + req.responseText);
+   }
+  }
+  req.send(display.value);
+ }
+
+ window.onload = function () {
+  chdir();
+ }
+
+</script>
+
+</body>
+</html>

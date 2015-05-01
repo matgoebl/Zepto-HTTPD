@@ -47,9 +47,9 @@ void handle_client (FILE *fd, int fh, char *remote_addr) {
   if (strstr (request, "..")==NULL && request[0]=='/' && request[1]!='/' && request[1]!='.' ) {
    if (strcasecmp (method, "GET") == 0) {
     if(request[strlen(request)-1]=='/'){DIR *dp;struct dirent *ep;dp=opendir (&request[1]);
-     sprintf(fb,"HTTP/1.0 200 Ok.\r\nContent-Type: test/plain\r\n\r\n");write(fh,fb,strlen(fb));
+     sprintf(fb,"HTTP/1.0 200 Ok.\r\nContent-Type: text/plain\r\n\r\n");write(fh,fb,strlen(fb));
      if(dp!=NULL){while((ep=readdir(dp))!=NULL) {write(fh,ep->d_name,strlen(ep->d_name));
-      if(ep->d_type==DT_DIR)write(fh,"/",1);write(fh,"\n",1);}} closedir(dp);return;}
+      if(ep->d_type==DT_DIR)write(fh,"/",1);write(fh,"\n",1);}} closedir(dp);status=200;goto log;}
     pgfd = strncmp (request,"/cgi/",5) == 0 ? popen (&request[1], "r") : fopen (&request[1], "r");
     status = 404; if (pgfd != NULL) { response[0] = '\0'; status = 200; }
    } else if (strncmp (request, "/data/", 6) == 0 ) {
@@ -75,7 +75,7 @@ void handle_client (FILE *fd, int fh, char *remote_addr) {
    while ((ret = fread (response, 1, sizeof (response), pgfd)) > 0)
      write (fh, response, ret);
    strncmp (request,"/cgi/",5) == 0 ? pclose (pgfd) : fclose (pgfd); }
- printf ("%s %03i %s %s %s\n", remote_addr, status, method, request, query); }
+ log: printf ("%s %03i %s %s %s\n", remote_addr, status, method, request, query); }
 int main (int argc, char **argv) {
  struct sockaddr_in server_addr, client_addr; socklen_t addr_len;
  char client_info[NI_MAXHOST]; FILE *client_fd;
