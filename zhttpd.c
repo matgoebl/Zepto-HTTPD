@@ -1,4 +1,4 @@
-#include <stdio.h>      //  Zepto-HTTPD v0.8 - (c)2010-2013 Matthias Goebl
+#include <stdio.h>      //  Zepto-HTTPD v0.9 - (c)2010-2015 Matthias.Goebl@goebl.net
 #include <stdlib.h>     //  Usage: zhttpd [ PORT [ HTMLROOT [ INDEXPAGE ] ] ]
 #include <string.h>     //  Default: zhttpd 8888 . /index.html
 #include <errno.h>      //  Zepto- (symbol z) is a prefix in the metric system denoting *10^-21.
@@ -10,8 +10,9 @@
 #include <sys/wait.h>   //  It serves text and html files from the file system. 
 #include <unistd.h>     //  It supports simple cgi-scripts (also nph).
 #include <ctype.h>      //  Tricks: Only HTTP/1.0, Env-as-AssocArray,
-#include <arpa/inet.h>  //  Features: CGI+params, put/delete, auth, hmtl/txt/jpg/bin, log,
+#include <arpa/inet.h>  //  Features: CGI+params, put/delete, auth, hmtl/txt/jpg/bin, log, dirlist
 #include <dirent.h>     //
+#include <sys/stat.h>   //
 #define DIE(msg...) do {fprintf(stderr,msg);fprintf(stderr," - terminated!\n");exit(1);} while (0)
 #define DBG(msg...) do {if(getenv("DEBUG")){fprintf(stderr,msg);fprintf(stderr,"\n");}} while (0)
 char *indexpage="/index.html";
@@ -46,10 +47,12 @@ void handle_client (FILE *fd, int fh, char *remote_addr) {
   if (strcasecmp (query, "?METHOD=DELETE") == 0) {strcpy(method,"DELETE");}
   if (strstr (request, "..")==NULL && request[0]=='/' && request[1]!='/' && request[1]!='.' ) {
    if (strcasecmp (method, "GET") == 0) {
-    if(request[strlen(request)-1]=='/'){DIR *dp;struct dirent *ep;dp=opendir (&request[1]);
+    if(request[strlen(request)-1]=='/'){DIR *dp;struct dirent *ep;struct stat st;
+     if(!(chdir(&request[1])==0&&(dp=opendir("."))!=NULL)) goto err;
      sprintf(fb,"HTTP/1.0 200 Ok.\r\nContent-Type: text/plain\r\n\r\n");write(fh,fb,strlen(fb));
      if(dp!=NULL){while((ep=readdir(dp))!=NULL) {write(fh,ep->d_name,strlen(ep->d_name));
-      if(ep->d_type==DT_DIR)write(fh,"/",1);write(fh,"\n",1);}} closedir(dp);status=200;goto log;}
+      if(stat(ep->d_name,&st)==0&&S_ISDIR(st.st_mode)) write(fh,"/",1);write(fh,"\n",1);}}
+      closedir(dp);status=200;goto log;}
     pgfd = strncmp (request,"/cgi/",5) == 0 ? popen (&request[1], "r") : fopen (&request[1], "r");
     status = 404; if (pgfd != NULL) { response[0] = '\0'; status = 200; }
    } else if (strncmp (request, "/data/", 6) == 0 ) {
@@ -59,21 +62,18 @@ void handle_client (FILE *fd, int fh, char *remote_addr) {
       while(size--)
        { ret=fgetc(fd); if(ret==EOF) break; ret=fputc(ret,pgfd); if(ret==EOF) break; }
       if(++size==0) { sprintf(response,"Ok.\r\n"); status = 200; }
-      fclose(pgfd); pgfd=NULL; system("./.put_handler &");
-     }
+      fclose(pgfd); pgfd=NULL; system("./.put_handler &"); }
     } else if (strcasecmp (method, "DELETE") == 0 ) {
       ret = unlink (&request[1]);
-      if (ret == 0) { sprintf(response,"Ok.\r\n"); status = 200; }
- }}}}
- DBG ("Reply: Status %i with Content:\n%s", status, response);
+      if (ret == 0) { sprintf(response,"Ok.\r\n"); status = 200; }}}}}
+ err: DBG ("Reply: Status %i with Content:\n%s", status, response);
  if (!strstr (request, ".nph") && fd != NULL)
-  {sprintf (fb, "HTTP/1.0 %i %s\r\nServer: zeptohttpd/0.8\r\nContent-Type: %s\r\n\r\n%s",
+  {sprintf (fb, "HTTP/1.0 %i %s\r\nServer: zeptohttpd/0.9\r\nContent-Type: %s\r\n\r\n%s",
    status, status == 200 ? "OK" : "Error", strstr (request, ".htm") ? "text/html" :
                 strstr (request, ".txt") ? "text/plain" : strstr (request, ".jpg") ? "image/jpeg" :
                 "application/octet-stream", response); write(fh,fb,strlen(fb));}
  if (pgfd != NULL) { // we have an open pipe to a cgi executable
-   while ((ret = fread (response, 1, sizeof (response), pgfd)) > 0)
-     write (fh, response, ret);
+   while ((ret = fread (response, 1, sizeof (response), pgfd)) > 0) write (fh, response, ret);
    strncmp (request,"/cgi/",5) == 0 ? pclose (pgfd) : fclose (pgfd); }
  log: printf ("%s %03i %s %s %s\n", remote_addr, status, method, request, query); }
 int main (int argc, char **argv) {
@@ -88,7 +88,7 @@ int main (int argc, char **argv) {
  if(bind(server_sock,(struct sockaddr*)&server_addr,sizeof(server_addr))<0) DIE(strerror(errno));
  listen (server_sock, 10); signal(SIGCHLD, SIG_IGN);
  while (1) {
-   DBG ("\n\n*** Zepto-HTTPD v0.8 - (c)2010-13 Matthias Goebl ***\nListening at TCP Port %i.",port);
+   DBG("\n\n*** Zepto-HTTPD v0.9 - (c)2010-2015 Matthias.Goebl@goebl.net ***\nTCP Port %i.",port);
    addr_len = sizeof (client_addr);
    client_sock = accept (server_sock, (struct sockaddr *) &client_addr, &addr_len);
    if (client_sock == -1) continue;
