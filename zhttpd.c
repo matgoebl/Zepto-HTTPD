@@ -1,6 +1,6 @@
-#include <stdio.h>      //  Zepto-HTTPD v0.9 - (c)2010-2015 Matthias.Goebl@goebl.net
-#include <stdlib.h>     //  Usage: zhttpd [ PORT [ HTMLROOT [ INDEXPAGE ] ] ]
-#include <string.h>     //  Default: zhttpd 8888 . /index.html
+#include <stdio.h>      //  Zepto-HTTPD v0.9 - (c)2010-2015 Matthias.Goebl*goebl.net
+#include <stdlib.h>     //  Usage: zhttpd [ PORT [ HTMLROOT [ INDEXPAGE [ DATADIR ]] ] ]
+#include <string.h>     //  Defaults: zhttpd 8888 . /index.html /data/
 #include <errno.h>      //  Zepto- (symbol z) is a prefix in the metric system denoting *10^-21.
 #include <fcntl.h>      //  This is a very minimalistic HTTP/1.0 partitial implementation in just
 #include <netdb.h>      //  100 lines of code (100 characters wide) written in C for any POSIX OS.
@@ -15,7 +15,7 @@
 #include <sys/stat.h>   //
 #define DIE(msg...) do {fprintf(stderr,msg);fprintf(stderr," - terminated!\n");exit(1);} while (0)
 #define DBG(msg...) do {if(getenv("DEBUG")){fprintf(stderr,msg);fprintf(stderr,"\n");}} while (0)
-char *indexpage="/index.html";
+char *indexpage="/index.html", *datadir="/data/";
 void handle_client (FILE *fd, int fh, char *remote_addr) {
  char method[17],request[8193],*query="\0",envbuf[8192],response[8192],*p,*q,*r,fb[99];
  FILE *pgfd=NULL; int ret, size, status = 503; sprintf(response,"HTTP Error\r\n");
@@ -44,7 +44,7 @@ void handle_client (FILE *fd, int fh, char *remote_addr) {
     {sprintf(fb,"HTTP/1.0 401 No Auth\r\nWWW-Authenticate: Basic realm=\"auth\"\r\n\r\n");
      write(fh,fb,strlen(fb));return;}
   if (strcmp (request, "/") == 0) strcpy (request, indexpage);
-  if (strcasecmp (query, "?METHOD=DELETE") == 0) {strcpy(method,"DELETE");}
+  if (strncasecmp (query, "?METHOD=DELETE", 14) == 0) {strcpy(method,"DELETE");}
   if (strstr (request, "..")==NULL && request[0]=='/' && request[1]!='/' && request[1]!='.' ) {
    if (strcasecmp (method, "GET") == 0) {
     if(request[strlen(request)-1]=='/'){DIR *dp;struct dirent *ep;struct stat st;
@@ -55,7 +55,7 @@ void handle_client (FILE *fd, int fh, char *remote_addr) {
       closedir(dp);status=200;goto log;}
     pgfd = strncmp (request,"/cgi/",5) == 0 ? popen (&request[1], "r") : fopen (&request[1], "r");
     status = 404; if (pgfd != NULL) { response[0] = '\0'; status = 200; }
-   } else if (strncmp (request, "/data/", 6) == 0 ) {
+   } else if (strncmp (request, datadir, strlen(datadir)) == 0 ) {
     if((!strcasecmp(method,"PUT")||!strcasecmp(method,"POST"))&&getenv("ZHTTP_CONTENT_LENGTH")){
      pgfd = fopen (&request[1], "w"); size=atoi(getenv("ZHTTP_CONTENT_LENGTH"));
      if (pgfd != NULL) {
@@ -78,8 +78,8 @@ void handle_client (FILE *fd, int fh, char *remote_addr) {
  log: printf ("%s %03i %s %s %s\n", remote_addr, status, method, request, query); }
 int main (int argc, char **argv) {
  struct sockaddr_in server_addr, client_addr; socklen_t addr_len;
- char client_info[NI_MAXHOST]; FILE *client_fd;
- int server_sock, client_sock, yes = 1, port = argc >= 2 ? atoi (argv[1]) : 8888;
+ char client_info[NI_MAXHOST]; FILE *client_fd; int server_sock, client_sock, yes = 1;
+ int port = argc >= 2 ? atoi (argv[1]) : 8888; if (argc >= 5) datadir=argv[4];
  if (argc >= 3) if (chdir (argv[2]) < 0) DIE (strerror (errno)); if (argc >= 4) indexpage=argv[3];
  server_sock = socket (AF_INET, SOCK_STREAM, 0); if (server_sock < 0) DIE (strerror (errno));
  server_addr.sin_family = AF_INET; server_addr.sin_addr.s_addr = htonl (INADDR_ANY);
@@ -88,7 +88,7 @@ int main (int argc, char **argv) {
  if(bind(server_sock,(struct sockaddr*)&server_addr,sizeof(server_addr))<0) DIE(strerror(errno));
  listen (server_sock, 10); signal(SIGCHLD, SIG_IGN);
  while (1) {
-   DBG("\n\n*** Zepto-HTTPD v0.9 - (c)2010-2015 Matthias.Goebl@goebl.net ***\nTCP Port %i.",port);
+   DBG("\n\n*** Zepto-HTTPD v0.9 - (c)2010-2015 Matthias.Goebl*goebl.net ***\nTCP Port %i.",port);
    addr_len = sizeof (client_addr);
    client_sock = accept (server_sock, (struct sockaddr *) &client_addr, &addr_len);
    if (client_sock == -1) continue;

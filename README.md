@@ -8,6 +8,7 @@ This is a very minimalistic `HTTP/1.0` working implementation in just
 100 lines of code (100 characters wide) written in C for any POSIX OS.
 Is results in a less than 10kB executable that only depends on libc.
 
+
 Features
 --------
 
@@ -29,9 +30,12 @@ Features
   Example: `ZAUTH='Basic dXNlcjpwYXNz' ./zhttpd`  
   (`dXNlcjpwYXNz` is base64 encoded `user:pass`)
 - It allows `PUT`, `POST` and `DELETE` methods to the `/data`/ subdirectory. `DELETE` can be emulated
-  by e.g. `GET /data/somefiles??method=delete`.
+  by e.g. `GET /data/somefiles??method=delete`. The location of the writable data subdirectory can be
+  change on the command line.
+- It lists directory contents when the request has a trailing slash e.g. `GET /data/`.
 - Short logging output.
 - Debug output when the environment `DEBUG` is set.
+
 
 Tricks and limitations
 ----------------------
@@ -40,17 +44,20 @@ Tricks and limitations
   `HTTP/1.1` adds many mandatory features and hence complexity.
 - It uses the environment as an associative array for header variables and query parameters.
 - It provides a very limited set of known file types.
+- It cannot handle file names with characters that need urlencoding.
 - It has limited error handling: It responds with status `404`, `401` or `503` and returns the message `HTTP Error` in all cases.
 
 Usage
 -----
 
-`zhttpd [ PORT [ HTMLROOT [ INDEXPAGE ] ] ]`  
-Default: `zhttpd 8888 . /index.html`
+`zhttpd [ PORT [ HTMLROOT [ INDEXPAGE [ DATADIR ] ] ] ]`  
+Defaults: `zhttpd 8888 . /index.html /data/`
 
 `PORT` is the tcp port to listen on, `HTMLROOT` is the root directory for web pages,
 `INDEXPAGE` is the main index when no page is requested (e.g. just `http://127.0.0.1/`).
 `INDEXPAGE` can be a cgi script, e.g. `/cgi/files.html`.
+`DATADIR` is the location of the writable data subdirectory.
+
 
 History
 -------
@@ -64,7 +71,7 @@ piece of software that matures.. ;-)
 
 License
 -------
-    Copyright 2010-2013 by Matthias Goebl <matthias.goebl*goebl.net>
+    Copyright 2010-2015 by Matthias Goebl <matthias.goebl*goebl.net>
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.

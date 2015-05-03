@@ -6,23 +6,25 @@
 </head>
 <body bgcolor=#FFFFFF link=#0000FF alink=#0000FF vlink=#0000FF>
 
-<h1><font face="arial,helvetica"><font color=red>Zepto</font> Web File Manager</font></h1>
-
+<font face="arial,helvetica"><font color=red>Zepto</font> Web File Manager</font>
+<BR>
 Path: <input id="path" value="/data/" size=40 onkeypress="if(event.keyCode==13) {chdir();}">
 <button onclick="chdir()">ChDir</button>
-<input type="button" value="RmDir" onclick="rmdir()">
+<button onclick="chdir('..')">Up</button>
+<input type="button" value="New" onclick="mkdir()">
+<input type="button" value="Rename" onclick="renamedir()">
+<input type="button" value="Delete" onclick="rmdir()">
 <BR>
 <div style="background-color:#EEEEEE; padding:2px 5px">
 <pre><div id="dirlist">(no data yet)</div></pre>
 </div>
 <BR>
-File: <input id="file" value="uptime" size=40 onkeypress="if(event.keyCode==13) {cmdexec();}">
+File: <input id="file" value="ls -l" size=40 onkeypress="if(event.keyCode==13) {cmdexec();}">
+<input type="button" value="Execute" onclick="cmdexec()">
 <input type="button" value="Edit" onclick="editfile()">
 <input type="button" value="Save" onclick="savefile()">
-<input type="button" value="Execute" onclick="cmdexec()">
-<input type="button" value="Delete" onclick="deletefile()">
 <input type="button" value="Rename" onclick="renamefile()">
-<input type="button" value="MkDir" onclick="mkdir()">
+<input type="button" value="Delete" onclick="deletefile()">
 <textarea id="display" style="width: 100%; height:30em; background-color:#EEEEEE; padding:2px 5px">
 (no data yet)
 </textarea>
@@ -30,30 +32,36 @@ File: <input id="file" value="uptime" size=40 onkeypress="if(event.keyCode==13) 
 
 
 <script type="text/javascript">
+ var display = document.getElementById("display");
 
- function chdir(path) {
-  if(!path) { path = document.getElementById("path").value; }
+ function chdir(cdpath) {
+  var path = document.getElementById("path").value;
+  if(!cdpath) { cdpath = path; }
+  if(cdpath==="..") {
+   cdpath=path.replace(/\/[^/]*\/$/,"/");
+  }
+  if(cdpath.slice(-1)!=="/") cdpath+="/";
   var dirlist = document.getElementById("dirlist");
   var req = new XMLHttpRequest();
   dirlist.firstChild.data = "(working...)"
-  req.open("GET", path+"?_="+Date.now(), true);
+  req.open("GET", cdpath+"?_="+Date.now(), true);
   req.onreadystatechange = function () {
    if (req.readyState == 4) {
     if(req.responseText != "") {
-     document.getElementById("path").value=path;
+     document.getElementById("path").value=cdpath;
      var out = "";
-     var lines = req.responseText.split('\n');
+     var lines = req.responseText.split('\n').sort();
      for(var n = 0; n < lines.length; n++) {
       line = lines[n];
-      var newpath=path+"/"+line;
+      var newpath=cdpath+"/"+line;
       newpath=newpath.replace("//","/");
       if(line.slice(-1)==="/") {
        if(line==="../") {
-        newpath=path.replace(/\/[^/]*\/$/,"/")
+        newpath=cdpath.replace(/\/[^/]*\/$/,"/");
        }
-       out += "<a href='#' onclick=\"chdir('"+newpath+"')\">"+line+"</a><BR>";
+       out += "<a href='"+newpath+"' onclick=\"chdir('"+newpath+"'); return false;\">"+line+"</a><BR>";
       } else {
-       out += "<a href='#' onclick=\"setfile('"+newpath+"')\">"+line+"</a><BR>";
+       out += "<a href='"+newpath+"' onclick=\"setfile('"+newpath+"'); return false;\">"+line+"</a><BR>";
       }
      }
      if(out==="") { out="-"; }
@@ -62,52 +70,65 @@ File: <input id="file" value="uptime" size=40 onkeypress="if(event.keyCode==13) 
    }
   }
   req.send();
-  return false;
  }
 
  function setfile(file) {
   document.getElementById("file").value=file;
-  return false;
  }
 
  function deletefile() {
   var file = document.getElementById("file").value;
   if( confirm('Really DELETE '+file+' ?')) {
-   cmdexec("rm ."+file+" && echo 'OK, deleted "+file+"'");
+   // cmdexec(" rm '."+file+"' && echo 'OK, deleted "+file+"'");
+   editfile(file+"??method=delete");
+   chdir();
   }
-  return false;
  }
 
  function renamefile() {
   var file = document.getElementById("file").value;
   var newfile=prompt('New File Name:',file);
   if( newfile) {
-   cmdexec("mv ."+file+" ."+newfile+" && echo 'OK, renamed as "+newfile+"'");
+   cmdexec(" mv '."+file+"' '."+newfile+"' && echo 'OK, renamed as "+newfile+"'");
+   chdir();
   }
-  return false;
+ }
+
+ function renamedir() {
+  var file = document.getElementById("path").value;
+  if(file.slice(-1)==="/") file=file.slice(0,-1);
+  var newfile=prompt('New Directory Name:',file);
+  if( newfile) {
+   cmdexec(" mv '."+file+"' '."+newfile+"' && echo 'OK, renamed as "+newfile+"'");
+   chdir(newfile);
+  }
  }
 
  function mkdir() {
   var path = document.getElementById("path").value;
   var newfile=prompt('New Directory Name:',path+"newdir");
   if( newfile ) {
-   cmdexec("mkdir ."+newfile+" && echo 'OK, created "+newfile+"'");
+   cmdexec(" mkdir '."+newfile+"' && echo 'OK, created "+newfile+"'");
+   chdir();
   }
-  return false;
  }
 
  function rmdir() {
   var file = document.getElementById("path").value;
   if( confirm('Really DELETE '+file+' ?')) {
-   cmdexec("rmdir ."+file+" && echo 'OK, deleted "+file+"'");
+   cmdexec(" rmdir '."+file+"' && echo 'OK, deleted "+file+"'");
+   chdir("..");
   }
-  return false;
  }
 
- var display = document.getElementById("display");
  function cmdexec(cmd) {
   if (!cmd) cmd = document.getElementById("file").value;
-  if(cmd.slice(0,1)==="/") cmd="."+cmd;
+  if(cmd.slice(0,1)==="/") {
+   cmd="."+cmd;
+  } else if(cmd.slice(0,1)!==" ") {
+   var path = document.getElementById("path").value;
+   cmd="cd '."+path+"' && "+cmd;
+  }
   var req = new XMLHttpRequest();
   display.value = "(working...)"
   req.open("GET", "/cgi/rsh.txt?cmd="+encodeURIComponent(cmd)+"&_="+Date.now(), true);
@@ -120,8 +141,8 @@ File: <input id="file" value="uptime" size=40 onkeypress="if(event.keyCode==13) 
   req.send();
  }
 
- function editfile() {
-  var file = document.getElementById("file").value;
+ function editfile(file) {
+  if(!file) file = document.getElementById("file").value;
   var req = new XMLHttpRequest();
   display.value = "(loading...)"
   req.open("GET", file+"?_="+Date.now(), true);
